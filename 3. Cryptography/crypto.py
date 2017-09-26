@@ -245,13 +245,6 @@ def main():
     print(rsa.verify_2keys(melding,key_sender,key_motaker))
 
 
-
-
-
-
-
-
-
 main()
 
 
