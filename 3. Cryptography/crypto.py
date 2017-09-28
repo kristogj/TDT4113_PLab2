@@ -1,7 +1,9 @@
 
 import string
-import random
+from random import randint
 import crypto_utils
+from bisect import bisect_left
+from itertools import product
 #************ CIPHER SUPERKLASSE ************
 
 class Cipher():
@@ -32,7 +34,10 @@ class Cipher():
         return text == decode
 
     def generate_keys(self):
-        return random.randint(0,94)
+        return randint(0,94)
+
+    def possible_keys(self,lengde):
+        return [x for x in range(0,95)]
 
 
 
@@ -65,10 +70,10 @@ class Multiplicative(Cipher):
 
     #Lager egen metode fordi vi krever remainder lik 1 for at modular_inversen skal bli riktig
     def generate_keys(self):
-        key = random.randint(0,94)
+        key = randint(0,94)
         check = check_prev_remainder(key,95)
         while check != 1:
-            key = random.randint(0,94)
+            key = randint(0,94)
             check = check_prev_remainder(key,95)
         return key
 
@@ -90,12 +95,13 @@ class Affine(Cipher):
         decode_caesar = Affine.cae.decode(cipher_text,key[1])
         return Affine.mul.decode(decode_caesar,key[0])
 
-    #Gir ikke 100% suksess
     def generate_keys(self):
         r1 = Affine.mul.generate_keys()
-        r2 = random.randint(0,94)
+        r2 = randint(0,94)
+        return (r1,r2)
 
-        return [r1,r2]
+    def possible_keys(self,lengde):
+        return [(x,y) for x in range(0,95) for y in range(0,95)]
 
 
 class Unbreakable(Cipher):
@@ -119,6 +125,11 @@ class Unbreakable(Cipher):
     def generate_keys(self,sender_key):
         receiver_key = inverted_key(sender_key)
         return sender_key,receiver_key
+
+    #IKKE SEND INN FOR HØY LENGDE
+    def possible_keys(self,lengde):
+        return ["".join(a) for a in product(Cipher.tegn,repeat=lengde)]
+
 
 
 #STATIC HJELPEFUNKSJON
@@ -153,7 +164,7 @@ class RSA(Cipher):
             p = crypto_utils.generate_random_prime(8)
             q = crypto_utils.generate_random_prime(8)
             phi = (p - 1) * (q - 1)
-            encode_key = random.randint(3, phi - 1)
+            encode_key = randint(3, phi - 1)
             check_keys = check_prev_remainder(encode_key,phi)
         n = p * q
         decode_key = crypto_utils.modular_inverse(encode_key, phi)
@@ -195,6 +206,7 @@ class Person():
         return self.__key
 
 
+
 #************ Person SUB-KLASSER ************
 
 class Sender(Person):
@@ -217,15 +229,48 @@ class Receiver(Person):
         return self.cipher.decode(cipher_text,self.get_key())
 
 
-class Hacker(Person):
+class Hacker(Receiver):
 
-    def __init__(self):
-        pass
+    def __init__(self,dictionary):
+        file = open(dictionary,"r")
+        read = file.read()
+        self.words = read.split("\n")
+        file.close()
 
+    def bi_search(self,word):
+        return (word <= self.words[-1]) and (self.words[bisect_left(self.words,word)] == word)
+
+    #Caesar OK
+    #Multiplicative OK
+    #Affine OK
+    #Unbreakable OK //må sende inn lengde på key for å kunne lage alle mulige kombinasjoner av lengden
+    #IKKE SEND INN FOR HØY LENGDE! Lengde 4 tilsvarer 95^4 = 81.450.625 forskjellige kombinasjoner som alt lagres i en liste
+    def decode_bruteforce(self,encode_text,cipher,lengde=None):
+        self.cipher = cipher
+        rang = cipher.possible_keys(lengde)
+        c = 0
+        for key in rang:
+            self.set_key(key)
+            decoded = self.operate_cipher(encode_text).lower()
+            decoded_words = decoded.split()
+            count = 0
+            for word in decoded_words:
+                check = self.bi_search(word)
+                if check:
+                    count +=1
+            if count == len(decoded_words) and (decoded_words != []):
+                return decoded
+            else:
+                count = 0
+
+            if c%1000==0:
+                print("Loading...")
+            else: c+=1
+            
+        return "Bruteforce failed"
 
 def main():
-    melding = "https://open.spotify.com/track/02CIvwzfN65xAJaJQNhxNC"
-
+    melding = "Hello what is going on"
     caesar = Caesar()
     multiplucative = Multiplicative()
     affine = Affine()
@@ -235,15 +280,19 @@ def main():
     key_c = caesar.generate_keys()
     key_m = multiplucative.generate_keys()
     key_a = affine.generate_keys()
-    key_send,key_mot = unbreakable.generate_keys("Koking")
+    key_send,key_mot = unbreakable.generate_keys("kok")
     key_sender,key_motaker = rsa.generate_keys()
 
-    print(Cipher.verify_1key(caesar,melding,key_c))
-    print(Cipher.verify_1key(multiplucative, melding, key_m))
-    print(Cipher.verify_1key(affine, melding, key_a))
-    print(unbreakable.verify_2keys(melding,key_send,key_mot))
-    print(rsa.verify_2keys(melding,key_sender,key_motaker))
+    # print(Cipher.verify_1key(caesar,melding,key_c))
+    # print(Cipher.verify_1key(multiplucative, melding, key_m))
+    # print(Cipher.verify_1key(affine, melding, key_a))
+    # print(unbreakable.verify_2keys(melding,key_send,key_mot))
+    # print(rsa.verify_2keys(melding,key_sender,key_motaker))
 
+    encoded_text = unbreakable.decode(melding,key_send)
+    hack = Hacker("english-text.txt")
+    decoded = hack.decode_bruteforce(encoded_text,unbreakable,3)
+    print(decoded)
 
 main()
 
