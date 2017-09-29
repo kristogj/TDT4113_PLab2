@@ -1,6 +1,6 @@
 from random import randint
 import crypto_utils
-from bisect import bisect_left
+#from bisect import bisect_left
 from itertools import product
 #************ CIPHER SUPERKLASSE ************
 
@@ -31,8 +31,10 @@ class Cipher():
         decode = self.decode(encode,key_d)
         return text == decode
 
-    def generate_keys(self):
-        return randint(0,94)
+    def generate_keys(self,key=None):
+        if key == None:
+            return randint(0,94)
+        return key
 
     def possible_keys(self,lengde):
         return [x for x in range(0,95)]
@@ -67,8 +69,9 @@ class Multiplicative(Cipher):
         return self.encode(cipher_text,new_key)
 
     #Lager egen metode fordi vi krever remainder lik 1 for at modular_inversen skal bli riktig
-    def generate_keys(self):
-        key = randint(0,94)
+    def generate_keys(self,key=None):
+        if key == None:
+            key = randint(0,94)
         check = check_prev_remainder(key,95)
         while check != 1:
             key = randint(0,94)
@@ -93,10 +96,11 @@ class Affine(Cipher):
         decode_caesar = Affine.cae.decode(cipher_text,key[1])
         return Affine.mul.decode(decode_caesar,key[0])
 
-    def generate_keys(self):
-        r1 = Affine.mul.generate_keys()
-        r2 = randint(0,94)
-        return (r1,r2)
+    def generate_keys(self,key1=None,key2=None):
+        if key1 == None and key2 == None:
+            key1 = Affine.mul.generate_keys()
+            key2 = randint(0,94)
+        return (key1,key2)
 
     def possible_keys(self,lengde):
         return [(x,y) for x in range(0,95) for y in range(0,95)]
@@ -245,27 +249,31 @@ class Hacker(Receiver):
     #Affine OK
     #Unbreakable OK //må sende inn lengde på key for å kunne lage alle mulige kombinasjoner av lengden
     #IKKE SEND INN FOR HØY LENGDE! Lengde 4 tilsvarer 95^4 = 81.450.625 forskjellige kombinasjoner som alt lagres i en liste
+    #Ved Unbreakable velger jeg å genrere alle mulige keys av en viss lengde, sjekker først alle keys som er gyldige ord
+    #før den deretter går videre på strenger av den gitte lengden.
+    #Det er ikke nødvendig å generere alle de stringsene, holder å teste ord fra ordlisten som key for unbreakable
     def decode_bruteforce(self,encode_text,cipher,lengde=None):
         self.cipher = cipher
         c = 0
+        possible_answer = []
         if isinstance(cipher,Unbreakable):
             status,answer = self.check_prevused_keys(encode_text,lengde)
-            if status:return answer
+            if status:possible_answer.append(answer)
 
         rang = cipher.possible_keys(lengde)
         for key in rang:
             self.set_key(key)
             decoded = self.operate_cipher(encode_text).lower()
             decoded_words = decoded.split()
-            if all(self.bi_search(word) for word in decoded_words):
+            if all(self.bi_search(word) for word in decoded_words) and decoded_words != []:
                 if isinstance(cipher, Unbreakable):
                     file = open("prev_keys.txt","a")
                     file.write("\n"+key),file.close()
-                return decoded
-            if c%1500==0:
-                print("Loading...")
-            c+=1
-        return "Bruteforce failed"
+                possible_answer.append(decoded)
+            # if c%1500==0:
+            #     print("Loading...")
+            # c+=1
+        return possible_answer
 
     def check_prevused_keys(self,encoded_text,lengde):
         file = open("prev_keys.txt","r")
@@ -282,29 +290,57 @@ class Hacker(Receiver):
         return (False,"x")
 
 def main():
-    melding = "Hello what is going on"
+    melding = "hello boss"
     caesar = Caesar()
     multiplucative = Multiplicative()
     affine = Affine()
     unbreakable = Unbreakable()
     rsa = RSA()
 
-    key_c = caesar.generate_keys()
-    key_m = multiplucative.generate_keys()
+    key_c = caesar.generate_keys(5)
+    key_m = multiplucative.generate_keys(5)
     key_a = affine.generate_keys()
-    key_send,key_mot = unbreakable.generate_keys("pizza")
+    key_send,key_mot = unbreakable.generate_keys("faj")
     key_sender,key_motaker = rsa.generate_keys()
 
-    # print(Cipher.verify_1key(caesar,melding,key_c))
-    # print(Cipher.verify_1key(multiplucative, melding, key_m))
-    # print(Cipher.verify_1key(affine, melding, key_a))
-    # print(unbreakable.verify_2keys(melding,key_send,key_mot))
-    # print(rsa.verify_2keys(melding,key_sender,key_motaker))
+    print("Caesar: ")
+    enc_c = caesar.encode(melding,key_c)
+    dec_c = caesar.decode(enc_c,key_c)
+    print(enc_c + "\n" + dec_c + "\n")
 
-    encoded_text = unbreakable.decode(melding,key_send)
-    hack = Hacker("english-text.txt")
-    decoded = hack.decode_bruteforce(encoded_text,unbreakable,len("pizza"))
-    print(decoded)
+
+    print("Multi: ")
+    enc_m = multiplucative.encode(melding, key_m)
+    dec_m = multiplucative.decode(enc_m, key_m)
+    print(enc_m + "\n" + dec_m + "\n")
+
+
+    print("Affine: ")
+    enc_a = affine.encode(melding, key_a)
+    dec_a = affine.decode(enc_a, key_a)
+    print(enc_a + "\n" + dec_a + "\n")
+
+
+    print("Unbreakable: ")
+    enc_u = unbreakable.encode(melding, key_send)
+    dec_u = unbreakable.decode(enc_u, key_mot)
+    print(enc_u + "\n" + dec_u + "\n")
+
+
+    print("RSA: ")
+    enc_r = rsa.encode(melding, key_sender)
+    dec_r = rsa.decode(enc_r, key_motaker)
+    print(str(enc_r) + "\n" + dec_r + "\n")
+
+    print("Hacker: ")
+    hacker = Hacker("english-text.txt")
+    print("CaesarHack: " + str(hacker.decode_bruteforce(enc_c,caesar)))
+    print("MultiHack: " + str(hacker.decode_bruteforce(enc_m,multiplucative)))
+    print("AffineHack: " + str(hacker.decode_bruteforce(enc_a,affine)))
+    print("UnbreakableHack: " + str(hacker.decode_bruteforce(enc_u,unbreakable,3))) #lengde
+
+
+
 
 main()
 
