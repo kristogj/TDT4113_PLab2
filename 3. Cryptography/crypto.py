@@ -232,11 +232,13 @@ class Hacker(Receiver):
     def __init__(self,dictionary):
         file = open(dictionary,"r")
         read = file.read()
-        self.words = read.split("\n")
+        self.words = set(read.split("\n"))
         file.close()
 
+    #Siden jeg bruker set vil søketiden være O(1)
     def bi_search(self,word):
-        return (word <= self.words[-1]) and (self.words[bisect_left(self.words,word)] == word)
+        #(word <= self.words[-1]) and (self.words[bisect_left(self.words,word)] == word) (Binærsøk)
+        return word in self.words
 
     #Caesar OK
     #Multiplicative OK
@@ -247,25 +249,35 @@ class Hacker(Receiver):
         self.cipher = cipher
         rang = cipher.possible_keys(lengde)
         c = 0
+        if isinstance(cipher,Unbreakable):
+            status,answer = self.check_prevused_keys(encode_text)
+            if status:return answer
         for key in rang:
             self.set_key(key)
             decoded = self.operate_cipher(encode_text).lower()
             decoded_words = decoded.split()
-            count = 0
-            for word in decoded_words:
-                check = self.bi_search(word)
-                if check:
-                    count +=1
-            if count == len(decoded_words) and (decoded_words != []):
+            if all(self.bi_search(word) for word in decoded_words):
+                if isinstance(cipher, Unbreakable):
+                    file = open("prev_keys.txt","a")
+                    file.write("\n"+key),file.close()
                 return decoded
-            else:
-                count = 0
-
-            if c%1000==0:
+            if c%1500==0:
                 print("Loading...")
-            else: c+=1
-            
+            c+=1
         return "Bruteforce failed"
+
+    def check_prevused_keys(self,encoded_text):
+        file = open("prev_keys.txt","r")
+        read = file.read().split("\n")
+        for key in read:
+            self.set_key(key)
+            decoded = self.operate_cipher(encoded_text).lower()
+            decoded_words = decoded.split()
+            if all(self.bi_search(word) for word in decoded_words):
+                file.close()
+                return (True,decoded)
+        file.close()
+        return (False,"x")
 
 def main():
     melding = "Hello what is going on"
@@ -278,7 +290,7 @@ def main():
     key_c = caesar.generate_keys()
     key_m = multiplucative.generate_keys()
     key_a = affine.generate_keys()
-    key_send,key_mot = unbreakable.generate_keys("kok")
+    key_send,key_mot = unbreakable.generate_keys("hellgrammites")
     key_sender,key_motaker = rsa.generate_keys()
 
     # print(Cipher.verify_1key(caesar,melding,key_c))
@@ -289,7 +301,7 @@ def main():
 
     encoded_text = unbreakable.decode(melding,key_send)
     hack = Hacker("english-text.txt")
-    decoded = hack.decode_bruteforce(encoded_text,unbreakable,3)
+    decoded = hack.decode_bruteforce(encoded_text,unbreakable,2)
     print(decoded)
 
 main()
