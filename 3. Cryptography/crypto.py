@@ -247,11 +247,12 @@ class Hacker(Receiver):
     #IKKE SEND INN FOR HØY LENGDE! Lengde 4 tilsvarer 95^4 = 81.450.625 forskjellige kombinasjoner som alt lagres i en liste
     def decode_bruteforce(self,encode_text,cipher,lengde=None):
         self.cipher = cipher
-        rang = cipher.possible_keys(lengde)
         c = 0
         if isinstance(cipher,Unbreakable):
-            status,answer = self.check_prevused_keys(encode_text)
+            status,answer = self.check_prevused_keys(encode_text,lengde)
             if status:return answer
+
+        rang = cipher.possible_keys(lengde)
         for key in rang:
             self.set_key(key)
             decoded = self.operate_cipher(encode_text).lower()
@@ -266,9 +267,10 @@ class Hacker(Receiver):
             c+=1
         return "Bruteforce failed"
 
-    def check_prevused_keys(self,encoded_text):
+    def check_prevused_keys(self,encoded_text,lengde):
         file = open("prev_keys.txt","r")
-        read = file.read().split("\n")
+        read = [x for x in file.read().split("\n") if len(x) == lengde]
+
         for key in read:
             self.set_key(key)
             decoded = self.operate_cipher(encoded_text).lower()
@@ -290,7 +292,7 @@ def main():
     key_c = caesar.generate_keys()
     key_m = multiplucative.generate_keys()
     key_a = affine.generate_keys()
-    key_send,key_mot = unbreakable.generate_keys("hellgrammites")
+    key_send,key_mot = unbreakable.generate_keys("pizza")
     key_sender,key_motaker = rsa.generate_keys()
 
     # print(Cipher.verify_1key(caesar,melding,key_c))
@@ -301,7 +303,7 @@ def main():
 
     encoded_text = unbreakable.decode(melding,key_send)
     hack = Hacker("english-text.txt")
-    decoded = hack.decode_bruteforce(encoded_text,unbreakable,2)
+    decoded = hack.decode_bruteforce(encoded_text,unbreakable,len("pizza"))
     print(decoded)
 
 main()
