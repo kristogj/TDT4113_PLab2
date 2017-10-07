@@ -265,11 +265,12 @@ class Hacker(Receiver):
             self.set_key(key)
             decoded = self.operate_cipher(encode_text).lower()
             decoded_words = decoded.split()
+            print(decoded)
             if all(self.bi_search(word) for word in decoded_words) and decoded_words != []:
                 if isinstance(cipher, Unbreakable):
                     file = open("prev_keys.txt","a")
                     file.write("\n"+key),file.close()
-                possible_answer.append(decoded)
+                possible_answer.append((decoded,key))
             # if c%1500==0:
             #     print("Loading...")
             # c+=1
@@ -290,29 +291,29 @@ class Hacker(Receiver):
         return (False,"x")
 
 def main():
-    melding = "hello boss"
+    melding = "Hello"
     caesar = Caesar()
     multiplucative = Multiplicative()
     affine = Affine()
     unbreakable = Unbreakable()
     rsa = RSA()
 
-    key_c = caesar.generate_keys(5)
-    key_m = multiplucative.generate_keys(5)
+    key_c = caesar.generate_keys()
+    key_m = multiplucative.generate_keys()
     key_a = affine.generate_keys()
     key_send,key_mot = unbreakable.generate_keys("faj")
     key_sender,key_motaker = rsa.generate_keys()
 
-    print("Caesar: ")
-    enc_c = caesar.encode(melding,key_c)
-    dec_c = caesar.decode(enc_c,key_c)
-    print(enc_c + "\n" + dec_c + "\n")
-
-
-    print("Multi: ")
-    enc_m = multiplucative.encode(melding, key_m)
-    dec_m = multiplucative.decode(enc_m, key_m)
-    print(enc_m + "\n" + dec_m + "\n")
+    # print("Caesar: ")
+    # enc_c = caesar.encode(melding,key_c)
+    # dec_c = caesar.decode(enc_c,key_c)
+    # print(enc_c + "\n" + dec_c + "\n")
+    #
+    #
+    # print("Multi: ")
+    # enc_m = multiplucative.encode(melding, key_m)
+    # dec_m = multiplucative.decode(enc_m, key_m)
+    # print(enc_m + "\n" + dec_m + "\n")
 
 
     print("Affine: ")
@@ -321,23 +322,23 @@ def main():
     print(enc_a + "\n" + dec_a + "\n")
 
 
-    print("Unbreakable: ")
-    enc_u = unbreakable.encode(melding, key_send)
-    dec_u = unbreakable.decode(enc_u, key_mot)
-    print(enc_u + "\n" + dec_u + "\n")
-
-
-    print("RSA: ")
-    enc_r = rsa.encode(melding, key_sender)
-    dec_r = rsa.decode(enc_r, key_motaker)
-    print(str(enc_r) + "\n" + dec_r + "\n")
+    # print("Unbreakable: ")
+    # enc_u = unbreakable.encode(melding, key_send)
+    # dec_u = unbreakable.decode(enc_u, key_mot)
+    # print(enc_u + "\n" + dec_u + "\n")
+    #
+    #
+    # print("RSA: ")
+    # enc_r = rsa.encode(melding, key_sender)
+    # dec_r = rsa.decode(enc_r, key_motaker)
+    # print(str(enc_r) + "\n" + dec_r + "\n")
 
     print("Hacker: ")
     hacker = Hacker("english-text.txt")
-    print("CaesarHack: " + str(hacker.decode_bruteforce(enc_c,caesar)))
-    print("MultiHack: " + str(hacker.decode_bruteforce(enc_m,multiplucative)))
+    # print("CaesarHack: " + str(hacker.decode_bruteforce(enc_c,caesar)))
+    # print("MultiHack: " + str(hacker.decode_bruteforce(enc_m,multiplucative)))
     print("AffineHack: " + str(hacker.decode_bruteforce(enc_a,affine)))
-    print("UnbreakableHack: " + str(hacker.decode_bruteforce(enc_u,unbreakable,3))) #lengde
+    # print("UnbreakableHack: " + str(hacker.decode_bruteforce(enc_u,unbreakable,3))) #lengde
 
 
 
