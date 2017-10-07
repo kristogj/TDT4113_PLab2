@@ -1,7 +1,8 @@
-import re
-import glob
+from re import sub
+from glob import glob
 from itertools import zip_longest
 import time
+from heapq import nlargest
 
 ### DEL 1 ###
 # Lese et dokument i treningssettet fra fil, og representer som angitt i Del 1
@@ -9,7 +10,7 @@ import time
 def read_one_file(filename):
     file = open(filename,'r', encoding='utf-8')
     review = file.read()
-    new_review = re.sub('[^a-åA-Å0-9]'," ",review).lower() #Fjerner bytter ut ikke godkjente tegn med " ", setter alt lower case
+    new_review = sub('[^a-åA-Å0-9]'," ",review).lower() #Fjerner bytter ut ikke godkjente tegn med " ", setter alt lower case
     word_set = set(new_review.split()) #Fjerner dublikater ved å bruke set
     try: word_set.remove("br")  #br er et ord som ligger i teksten bra <br /> som gir linjeskift i html kode, fjerner den hvis det eksisterer
     except KeyError: pass
@@ -21,10 +22,10 @@ def read_one_file(filename):
 # Les alle filene fra treningsettet. Analyser representasjonene slik at du finner de 25 mest populre ordene for hhv,
 # positive og negetive anmeldelser
 def read_all_files():
-    negative_file_list = glob.glob("data/alle/train/neg/*.txt") #Liste over filene
-    positive_file_list = glob.glob("data/alle/train/pos/*.txt")
-    antall_positive = len(positive_file_list) #Bruk viss du vil ha sannsynlighet
-    antall_negative = len(negative_file_list)
+    negative_file_list = glob("data/alle/train/neg/*.txt") #Liste over filene
+    positive_file_list = glob("data/alle/train/pos/*.txt")
+    # antall_positive = len(positive_file_list) #Bruk viss du vil ha sannsynlighet
+    # antall_negative = len(negative_file_list)
     positive_words, negative_words = {},{}
     for p_file,n_file in zip_longest(positive_file_list,negative_file_list): #Gå gjennom hver review
         pos_set = read_one_file(p_file) #Hent ordene brukt i set
@@ -33,8 +34,9 @@ def read_all_files():
             count_word(positive_words,w_pos)
             count_word(negative_words,w_neg)
     positive_words,negative_words = list(positive_words.items()),list(negative_words.items())
-    positive_words.sort(key=lambda x:x[1], reverse=True),negative_words.sort(key=lambda x:x[1], reverse=True) #Sorter for å finne top 25
-    return positive_words[0:25],negative_words[0:25]
+    positive_words,negative_words = nlargest(25,positive_words,key=lambda x:x[1]),\
+                                    nlargest(25,negative_words,key=lambda x:x[1]) #Finner de 25 mest brukte ordene
+    return positive_words,negative_words
 
 def count_word(dictionary,word):
     if word not in dictionary and word is not None:
@@ -48,7 +50,7 @@ def main():
     print(pos)
     print(neg)
     end = time.time()
-    print((end-start)/12500)
+    print((end-start))
     # liste = [(9,"hei"),(8,"nei"),(1,"nsj")]
     # liste.sort()
     # print(liste)
