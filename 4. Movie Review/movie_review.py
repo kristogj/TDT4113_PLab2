@@ -6,16 +6,14 @@ from heapq import nlargest
 
 ### DEL 1 ###
 # Lese et dokument i treningssettet fra fil, og representer som angitt i Del 1
-
 def read_one_file(filename):
+    stopwords = get_stop_words()
     file = open(filename,'r', encoding='utf-8')
     review = file.read()
     new_review = sub('[^a-åA-Å0-9]'," ",review).lower() #Fjerner bytter ut ikke godkjente tegn med " ", setter alt lower case
     word_set = set(new_review.split()) #Fjerner dublikater ved å bruke set
-    try: word_set.remove("br")  #br er et ord som ligger i teksten bra <br /> som gir linjeskift i html kode, fjerner den hvis det eksisterer
-    except KeyError: pass
     file.close()
-    return word_set
+    return set([word for word in word_set if word not in stopwords])
 
 
 ### DEL 2 ###
@@ -36,13 +34,21 @@ def read_all_files():
     positive_words,negative_words = list(positive_words.items()),list(negative_words.items())
     positive_words,negative_words = nlargest(25,positive_words,key=lambda x:x[1]),\
                                     nlargest(25,negative_words,key=lambda x:x[1]) #Finner de 25 mest brukte ordene
-    return positive_words,negative_words
+    return positive_words,negative_words #Returnerer egentlig bare en liste med stopp-ord
 
 def count_word(dictionary,word):
     if word not in dictionary and word is not None:
         dictionary[word] = 1
     elif word is not None:
         dictionary[word] += 1
+
+### DEL 3 ###
+#Skal brukes til å filtrere bort stop-sord
+def get_stop_words():
+    file = open("data/stop_words.txt")
+    words = file.read().split()
+    file.close()
+    return set(words)
 
 def main():
     start = time.time()
@@ -51,9 +57,7 @@ def main():
     print(neg)
     end = time.time()
     print((end-start))
-    # liste = [(9,"hei"),(8,"nei"),(1,"nsj")]
-    # liste.sort()
-    # print(liste)
+
 
 
 
