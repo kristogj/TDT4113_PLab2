@@ -22,8 +22,7 @@ def read_all_files():
     stopwords = get_stop_words()
     negative_file_list = glob("data/alle/train/neg/*.txt") #Liste over filene
     positive_file_list = glob("data/alle/train/pos/*.txt")
-    # antall_positive = len(positive_file_list) #Bruk viss du vil ha sannsynlighet
-    # antall_negative = len(negative_file_list)
+    total_number_of_documents = len(negative_file_list) + len(positive_file_list)
     positive_words, negative_words, total_words = {},{},{}
     for p_file,n_file in zip_longest(positive_file_list,negative_file_list): #Gå gjennom hver review
         pos_set = read_one_file(p_file,stopwords) #Hent ordene som er brukt i filen
@@ -32,8 +31,8 @@ def read_all_files():
             count_word_2(positive_words,total_words,w_pos)
             count_word_2(negative_words,total_words,w_neg)
 
-    change_counter(positive_words,total_words)
-    change_counter(negative_words,total_words)
+    change_counter_2(positive_words,total_words,total_number_of_documents)
+    change_counter_2(negative_words,total_words,total_number_of_documents)
     positive_words,negative_words = list(positive_words.items()),list(negative_words.items())
     positive_words,negative_words = nlargest(25,positive_words,key=lambda x:x[1]),\
                                     nlargest(25,negative_words,key=lambda x:x[1]) #Finner de 25 mest brukte ordene
@@ -64,7 +63,7 @@ def count_word_2(dictionary,tot_dictionary,word):
         dictionary[word] += 1
         tot_dictionary[word] += 1
 
-def change_counter(dictionary,tot_dictionary):
+def change_counter(dictionary,tot_dictionary): #Oppdateres i del 5
     for word in tot_dictionary:
         try:
             dictionary[word] = dictionary[word]/tot_dictionary[word]
@@ -72,6 +71,19 @@ def change_counter(dictionary,tot_dictionary):
             pass
 
 
+### DEL 5 ###
+#Fjern ord som ikke brukes mer enn en hvis prosent-andel i alle dokumente (å "prune")
+def change_counter_2(dictionary,tot_dictionary,number_of_documents):
+    for word in tot_dictionary:
+        try:
+            if tot_dictionary[word] / number_of_documents < 0.05:
+                dictionary.pop(word)
+                continue
+            dictionary[word] = dictionary[word]/tot_dictionary[word]
+        except KeyError:
+            pass
+
+### DEL 6 ###
 
 def main():
     start = time.time()
