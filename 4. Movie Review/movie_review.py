@@ -21,16 +21,14 @@ class Review():
         file = open(filename,'r', encoding='utf-8')
         review = file.read().lower()
         file.close()
-        file_words = findall(r"[\w][\w]*'?´?[\w][\w]",review)
+        file_words = findall(r"[\w][\w]*'?[\w][\w]",review)
         if self.n_gram >0:
             file_words += ["_".join(file_words[x:x+self.n_gram]) for x in range(0,len(file_words)-(self.n_gram+1))]
         return set([word for word in file_words if word not in self.stopwords])
 
 
     ### DEL 2 ###
-    def read_all_traning_files(self):
-        #Lag liste av alle filene
-        negative_file_list,positive_file_list = glob("data/alle/train/neg/*.txt"),glob("data/alle/train/pos/*.txt")
+    def read_all_traning_files(self,positive_file_list,negative_file_list):
         total_number_of_documents = len(negative_file_list) + len(positive_file_list)
         #Lag dict som skal telle frekvensen av et ord
         positive_words, negative_words, total_words = {},{},{}
@@ -51,19 +49,18 @@ class Review():
         self.neg_vocabular = negative_words
 
     ### Del 7 ###
-    def klassifikasjonssystem(self,path):
-        file_list = glob(path)
+    def klassifikasjonssystem(self,file_list):
         my_pos_files,my_neg_files = [],[]
         print("Reading testfiles...")
         for file in file_list:
             _set = self.read_one_file(file)
-            pos_score = 0
-            neg_score = 0
-            for word in _set: pos_score += get_score(self.pos_vocabular,word)
-            for word in _set: neg_score += get_score(self.neg_vocabular,word)
+            pos_score,neg_score = 0,0
+            for word in _set:
+                pos_score += get_score(self.pos_vocabular,word)
+                neg_score += get_score(self.neg_vocabular,word)
             if pos_score > neg_score: my_pos_files.append(file)
             else: my_neg_files.append(file)
-        if "pos" in path: return len(my_pos_files)/len(file_list)
+        if "pos" in file_list[0]: return len(my_pos_files)/len(file_list)
         return len(my_neg_files)/len(file_list)
 
 def get_score(vokabuler,word):
@@ -71,7 +68,7 @@ def get_score(vokabuler,word):
     try:
         score += log(vokabuler[word])
     except KeyError:
-        score += log(0.005)
+        score += log(0.01)
     return score
 
 ### DEL 3 ###
@@ -103,15 +100,20 @@ def prune(dictionary,tot_dictionary,number_of_documents):
 
 
 start = time()
+negative_training_list = glob("data/alle/train/neg/*.txt")
+positive_traning_list = glob("data/alle/train/pos/*.txt")
+neg_test_list = glob("data/alle/test/neg/*.txt")
+pos_test_list = glob("data/alle/test/pos/*.txt")
 #Lag objekt, bestem lengde n-gram
 review = Review(2)
 #Training
-review.read_all_traning_files()
+review.read_all_traning_files(positive_traning_list,negative_training_list)
 #Klassifiser
-pos = review.klassifikasjonssystem("data/alle/test/pos/*.txt")
-neg = review.klassifikasjonssystem("data/alle/test/neg/*.txt")
+pos = review.klassifikasjonssystem(pos_test_list)
+neg = review.klassifikasjonssystem(neg_test_list)
 print("Resultat positive testfiler: " +  str(pos) + "%")
 print("Resultat negative testfiler: " + str(neg) + "%")
+print("Total: " + str((pos+neg)/2))
 end = time()
 print((end-start))
 
