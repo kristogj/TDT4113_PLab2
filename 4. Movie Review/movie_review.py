@@ -40,13 +40,16 @@ class Review():
             for w_neg in neg_set: count_word(negative_words,total_words,w_neg)
         # change_counter_2(positive_words,total_words,total_number_of_documents) #Finn informasjonsverdi
         # change_counter_2(negative_words,total_words,total_number_of_documents)
-        prune(positive_words, total_words, len(positive_file_list))  # Finn popularitetverdi
-        prune(negative_words, total_words, len(negative_file_list))
-        # positive_words,negative_words = list(positive_words.items()),list(negative_words.items()) #Dict --> list of tuples
-        # positive_words,negative_words = nlargest(25,positive_words,key=lambda x:x[1]),\
-        #                                 nlargest(25,negative_words,key=lambda x:x[1]) #Finner de 25 mest brukte ordene
+        prune(positive_words, total_words, len(positive_file_list))  # Finn popularitetverdi, kansje mer riktig
+        prune(negative_words, total_words, len(negative_file_list))  #å sende in total_number_of_documents
         self.pos_vocabular = positive_words
         self.neg_vocabular = negative_words
+
+    def get_top_25(self):
+        pos_words, neg_words = dict(self.pos_vocabular), dict(self.neg_vocabular)
+        pos_words, neg_words = list(pos_words.items()),list(neg_words.items())
+        pos_words, neg_words = nlargest(25,pos_words,key=lambda x:x[1]),nlargest(25,neg_words,key=lambda x:x[1])
+        return pos_words,neg_words
 
     ### Del 7 ###
     def klassifikasjonssystem(self,file_list):
@@ -64,12 +67,11 @@ class Review():
         return len(my_neg_files)/len(file_list)
 
 def get_score(vokabuler,word):
-    score = 0
     try:
-        score += log(vokabuler[word])
+        return log(vokabuler[word])
     except KeyError:
-        score += log(0.01)
-    return score
+        return log(0.01)
+
 
 ### DEL 3 ###
 #Filterer bort stopwords i read_one_file
@@ -108,14 +110,17 @@ pos_test_list = glob("data/alle/test/pos/*.txt")
 review = Review(2)
 #Training
 review.read_all_traning_files(positive_traning_list,negative_training_list)
+top_25_pos,top_25_neg = review.get_top_25()
+print(top_25_pos)
+print(top_25_neg)
 #Klassifiser
 pos = review.klassifikasjonssystem(pos_test_list)
 neg = review.klassifikasjonssystem(neg_test_list)
-print("Resultat positive testfiler: " +  str(pos) + "%")
-print("Resultat negative testfiler: " + str(neg) + "%")
-print("Total: " + str((pos+neg)/2))
+print("Resultat positive testfiler: " +  str(round(pos*100,2)) + "%")
+print("Resultat negative testfiler: " + str(round(neg*100,2)) + "%")
+print("Total: " + str(round(((pos+neg)/2)*100,2)) + "%")
 end = time()
-print((end-start))
+print(str((end-start)) + " sek")
 
 
 
