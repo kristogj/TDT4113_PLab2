@@ -113,13 +113,15 @@ class Imager():
         return Imager(image= img)
 
 
-################## MAPPING ##################
+################## MAPPING AV PIXLER ##################
     def get_pixel(self,x,y): return self.image.getpixel((x,y))
     def set_pixel(self,x,y,rgb): self.image.putpixel((x,y),rgb)
 
     def combine_pixels(self,p1,p2,alpha=0.5):
         return tuple([round(alpha*p1[i] + (1 - alpha)*p2[i]) for i in range(3)])
 
+    #Gjør func med hver pixel i bilde
+    #Hver pixel repr rgb(x,x,x), ved lambda x:2*x vil rgb(2x,2x,2x)
     # The use of Image.eval applies the func to each BAND, independently, if image pixels are RGB tuples.
     def map_image(self,func,image=False):
         # "Apply func to each pixel of the image, returning a new image"
@@ -129,6 +131,8 @@ class Imager():
     # This applies the function to each RGB TUPLE, returning a new tuple to appear in the new image.  So func
     # must return a 3-tuple if the image has RGB pixels.
 
+    #Ser på hver pixel som en enhet, og trenger en funksjon som wta() for å gjøre noe med pixelen
+    #Test med func = lamdba pixel:(100,0,0), vil bare gi et rødt bilde
     def map_image2(self,func,image=False):
         im2 = image.copy() if image else self.image.copy()
         for i in range(self.xmax):
@@ -148,21 +152,33 @@ class Imager():
                 return (0,0,0)
         return self.map_image2(wta,image)
 
+    def map_color_removeoneRGB(self,color):
+        c = {'red':0,'green':1,'blue':2}
+        color = c[color]
+        def roc(p):
+            li = list(p)
+            li[color] = 0
+            return tuple(li)
+        return self.map_image2(roc)
 
     # Note that grayscale uses the RGB triple to define shades of gray.
+    #Gjør bilde svart/hvit
     def gen_grayscale(self,image=False): return self.scale_colors(image=image,degree=0)
 
+    #Demper eller øker fargestyrken
     def scale_colors(self,image=False,degree=0.5):
         image = image if image else self.image
         return Imager(image=ImageEnhance.Color(image).enhance(degree))
 
-    def paste(self,im2,x0=0,y0=0):
-        self.get_image().paste(im2.get_image(),(x0,y0,x0+im2.xmax,y0+im2.ymax))
 
 ################## KOMBINER BILDER ##################
 ## The two concatenate operations will handle images of different sizes
 
-    #Legg to bilder over hverandre
+    # Limer im2 over self.img
+    def paste(self, im2, x0=0, y0=0):
+        self.image.paste(im2.get_image(), (x0, y0, x0 + im2.xmax, y0 + im2.ymax))
+
+    #Legg to bilder ovenfor hverandre
     def concat_vert(self,im2=False,background='black'):
         im2 = im2 if im2 else self # concat with yourself if no other imager is given.
         im3 = Imager()
@@ -207,6 +223,7 @@ class Imager():
         return Imager(image=new_img)
 
     #Blander to bilder ved å legge dem over hverandre, med mindre opacity på øverste
+    #Må være samme størrelse
     def morph(self,img2,alpha=0.5):
         img = Image.blend(self.image,img2.image,alpha) #Legger img2 over img med opacity alpha
         return Imager(image=img)
@@ -236,8 +253,16 @@ class Imager():
             self.paste(child, dx,dy)
             return self
 
-    def mortun(self,im2,levels=5,scale=0.75):
+    #Må være samme størrelse
+    def morphtunnel(self,im2,levels=5,scale=0.75):
         return self.tunnel(levels,scale).morph4(im2.tunnel(levels,scale))
+
+
+
+
+
+
+
 
 ### *********** TESTS ************************
 
