@@ -17,6 +17,11 @@ class Imager():
                       'indigo':(75,0,130),
                       'blue':(65,105,225)}
 
+    _flip_ = {
+        'hor': Image.FLIP_LEFT_RIGHT,
+        'ver': Image.FLIP_TOP_BOTTOM
+    }
+
     def __init__(self,fid=False,image=False,width=100,height=100,background='black',mode='RGB'):
         self.fid = fid # The image file
         self.image = image # A PIL image object
@@ -29,6 +34,8 @@ class Imager():
         if self.image: self.get_image_dims()
         else: self.image = self.gen_plain_image(self.xmax,self.ymax,background)
 
+
+################## BASICS ##################
     # Load image from file
     def load_image(self):
         self.image = Image.open(self.fid)  # the image is actually loaded as needed (automatically by PIL)
@@ -63,6 +70,9 @@ class Imager():
 
     def get_color_rgb(self,colorname): return Imager._pixel_colors_[colorname]
 
+
+
+################## SIZE ##################
     # This returns a resized copy of the image
     def resize(self,new_width,new_height,image=False):
         image = image if image else self.image
@@ -71,6 +81,39 @@ class Imager():
     def scale(self,xfactor,yfactor):
         return self.resize(round(xfactor*self.xmax),round(yfactor*self.ymax))
 
+    def crop(self,box):
+        img = self.image.copy().crop(box)
+        return Imager(image= img)
+
+    # Hvis bredde != høyde, så lager den resten svar slik at bredde==høyde
+    def pad_to_square(self):
+        img = self.image.copy()
+        img_size = img.size
+        longer_side = max(img_size)
+        hor_padding = (longer_side - img_size[0]) / 2
+        ver_padding = (longer_side - img_size[1]) / 2
+        img = img.crop((
+            -hor_padding,
+            -ver_padding,
+            img_size[0] + hor_padding,
+            img_size[1] + ver_padding
+        ))
+        return Imager(image=img)
+
+################## DIRECTION ##################
+    def rotate_left(self,angle,expand=True): #expand sier bare at bilde ikke skal cropes
+        img = self.image.copy().rotate(angle,expand=expand)
+        return Imager(image=img)
+
+    def rotate_right(self,angle,expand=True):
+        self.rotate_left(-angle,expand)
+
+    def flip(self,direction):
+        img = self.image.copy().transpose(Imager._flip_[direction])
+        return Imager(image= img)
+
+
+################## MAPPING ##################
     def get_pixel(self,x,y): return self.image.getpixel((x,y))
     def set_pixel(self,x,y,rgb): self.image.putpixel((x,y),rgb)
 
@@ -116,41 +159,61 @@ class Imager():
     def paste(self,im2,x0=0,y0=0):
         self.get_image().paste(im2.get_image(),(x0,y0,x0+im2.xmax,y0+im2.ymax))
 
-    ### Combining imagers in various ways.
+################## KOMBINER BILDER ##################
+## The two concatenate operations will handle images of different sizes
 
-    ## The two concatenate operations will handle images of different sizes
+    #Legg to bilder over hverandre
     def concat_vert(self,im2=False,background='black'):
         im2 = im2 if im2 else self # concat with yourself if no other imager is given.
         im3 = Imager()
-        im3.xmax = max(self.xmax,im2.xmax)
+        im3.xmax = max(self.xmax,im2.xmax) #Finner max bredde
         im3.ymax = self.ymax + im2.ymax
         im3.image = im3.gen_plain_image(im3.xmax,im3.ymax,background)
         im3.paste(self,0,0)
-        im3.paste(im2, 0,self.ymax)
+        im3.paste(im2, 0,self.ymax) #paste limer bildene over img3
         return im3
 
+    #Legg to bilder ved siden av hverandre
     def concat_horiz(self,im2=False,background='black'):
         im2 = im2 if im2 else self # concat with yourself if no other imager is given.
         im3 = Imager()
-        im3.ymax = max(self.ymax,im2.ymax)
+        im3.ymax = max(self.ymax,im2.ymax) #Finner maxhøyde
         im3.xmax = self.xmax + im2.xmax
         im3.image = im3.gen_plain_image(im3.xmax,im3.ymax,background)
         im3.paste(self, 0,0)
-        im3.paste(im2, self.xmax,0)
+        im3.paste(im2, self.xmax,0) #paste limer bildene over img3
         return im3
 
-    # This requires self and im2 to be of the same size
-    def morph(self,im2,alpha=0.5):
-        im3 = Imager(width=self.xmax,height=self.ymax) # Creates a plain image
-        for x in range(self.xmax):
-            for y in range(self.ymax):
-                rgb = self.combine_pixels(self.get_pixel(x,y), im2.get_pixel(x,y), alpha=alpha)
-                im3.set_pixel(x,y,rgb)
-        return im3
+    #Tar inn en liste av Imager objekter, lager collage
+    #Kollonner * rader må være lik antall bilder
+    #Resizer underveis
+    def create_collage(self,width,height,cols,rows,listofimages):
+        thumb_width = width//cols
+        thumb_height = height//rows
+        new_img = Image.new('RGB',(width,height))
+        imgs = [self.resize(thumb_width,thumb_height)]
+        for pic in listofimages:
+            img = pic.resize(thumb_width,thumb_height)
+            imgs.append(img)
+        i,x,y = 0,0,0
+        for col in range(cols):
+            for row in range(rows):
+                print(i,x,y)
+                new_img.paste(imgs[i].image,(x,y))
+                i+=1
+                y+=thumb_height
+            x+=thumb_width
+            y=0
+        return Imager(image=new_img)
+
+    #Blander to bilder ved å legge dem over hverandre, med mindre opacity på øverste
+    def morph(self,img2,alpha=0.5):
+        img = Image.blend(self.image,img2.image,alpha) #Legger img2 over img med opacity alpha
+        return Imager(image=img)
 
     def morph4(self,im2):
-        im3 = self.morph(im2,alpha=0.66)
-        im4 = self.morph(im2,alpha=0.33)
+        im3 = self.morph(im2,alpha=0.33)
+        im4 = self.morph(im2,alpha=0.66)
         return self.concat_horiz(im3).concat_vert(im4.concat_horiz(im2))
 
     def morphroll(self,im2,steps=3):
@@ -158,7 +221,7 @@ class Imager():
         roll = self
         for i in range(steps):
             alpha = (i + 1)*delta_alpha
-            roll = roll.concat_horiz(self.morph(im2,1-alpha))
+            roll = roll.concat_horiz(self.morph(im2,alpha))
         roll = roll.concat_horiz(im2)
         return roll
 
