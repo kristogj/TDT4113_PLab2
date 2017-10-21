@@ -13,10 +13,8 @@ img5 = Imager("images/fisheggs.jpeg")
 img6 = Imager("images/kdfinger.jpeg")
 list = [img2,img3,img4,img5,img6]
 
-img1 = img1.resize(500,500)
-img2 = img2.resize(500,500)
 
-img1.mortun(img2).display()
+img1.rank("modefilter",size=5).display()
 
 
 

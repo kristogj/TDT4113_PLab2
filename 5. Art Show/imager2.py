@@ -6,6 +6,7 @@ from PIL import ImageOps
 
 
 
+
 class Imager():
 
     _pixel_colors_ = {'red':(255,0,0),
@@ -161,15 +162,52 @@ class Imager():
             return tuple(li)
         return self.map_image2(roc)
 
-    # Note that grayscale uses the RGB triple to define shades of gray.
-    #Gjør bilde svart/hvit
-    def gen_grayscale(self,image=False): return self.scale_colors(image=image,degree=0)
 
-    #Demper eller øker fargestyrken
-    def scale_colors(self,image=False,degree=0.5):
+################## SCALE (ImageEnhance) ##################
+    _scale_ = {"color": ImageEnhance.Color,
+               "contrast": ImageEnhance.Contrast,
+               "brightness": ImageEnhance.Brightness,
+               "sharpness": ImageEnhance.Sharpness}
+
+    #Demper eller forsterker scale
+    def scaleX(self,scale,image=False,degree=0.5):
         image = image if image else self.image
-        return Imager(image=ImageEnhance.Color(image).enhance(degree))
+        return Imager(image= self._scale_[scale](image).enhance(degree))
 
+    #Gjør bilde svart/hvit
+    def gen_grayscale(self,image=False): return self.scaleX("color",image=image,degree=0)
+
+################## FILTER (ImageFilter) ##################
+    _filter_ = {"gaussianblur":ImageFilter.GaussianBlur,
+                "boxblur":ImageFilter.BoxBlur,
+                "unsharp":ImageFilter.UnsharpMask,
+                "kernel":ImageFilter.Kernel,
+                "rankfilter":ImageFilter.RankFilter,
+                "medianfilter":ImageFilter.MedianFilter,
+                "minfilter":ImageFilter.MinFilter,
+                "maxfilter":ImageFilter.MaxFilter,
+                "modefilter":ImageFilter.ModeFilter}
+
+    def xBlur(self,blur,image=False,radius=2):
+        image = image if image else self.image
+        f = self._filter_[blur](radius)
+        return Imager(image = image.filter(f))
+
+    def unsharp(self,image=False,radius=2,percent=150,thresold=3):
+        image = image if image else self.image
+        f = self._filter_["unsharp"](radius,percent,thresold)
+        return Imager(image=image.filter(f))
+
+    #Litt usikker hva denne effekten gjør nøyaktig
+    def kernel(self,size,kernel,image=False,scale=250,offset=0):
+        image = image if image else self.image
+        f = self._filter_["kernel"](size,kernel,scale=scale,offset=offset)
+        return Imager(image=image.filter(f))
+
+    def rank(self,rank,image=False,size=3):
+        image = image if image else self.image
+        f = self._filter_[rank](size = size)
+        return Imager(image=image.filter(f))
 
 ################## KOMBINER BILDER ##################
 ## The two concatenate operations will handle images of different sizes
@@ -267,6 +305,16 @@ class Imager():
 ### *********** TESTS ************************
 
 # Note: the default file paths for these examples are for unix!
+
+#Fjerner en farge fra bildene, setter dem sammen horizontalt
+def remove_RGB_3imgconcat(imagepath="images/brain.jpeg"):
+    img1 = Imager(imagepath)
+    noRed = img1.map_color_removeoneRGB("red")
+    noGreen = img1.map_color_removeoneRGB("green")
+    noBlue = img1.map_color_removeoneRGB("blue")
+    onetwo = noRed.concat_horiz(noGreen)
+    all = onetwo.concat_horiz(noBlue)
+    return all
 
 def ptest1(fid1='images/kdfinger.jpeg', fid2="images/einstein.jpeg",steps=5,newsize=250):
     im1 = Imager(fid1); im2 = Imager(fid2)
