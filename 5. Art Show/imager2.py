@@ -60,7 +60,7 @@ class Imager():
     def get_image_dims(self):
         self.xmax = self.image.size[0]
         self.ymax = self.image.size[1]
-        return [self.xmax,self.ymax]
+        return self.xmax,self.ymax
 
     def copy_image_dims(self,im2):
         im2.xmax = self.xmax; im2.ymax = self.ymax
@@ -216,6 +216,13 @@ class Imager():
     def paste(self, im2, x0=0, y0=0):
         self.image.paste(im2.get_image(), (x0, y0, x0 + im2.xmax, y0 + im2.ymax))
 
+    def frame(self,color,borde_size=7,image=False):
+        image = image if image else self.image
+        width,height = image.size[0]+(2*borde_size),image.size[1]+(2*borde_size)
+        frame = self.gen_plain_image(width,height,color,mode="RGB")
+        frame.paste(image,(borde_size,borde_size))
+        return Imager(image=frame)
+
     #Legg to bilder ovenfor hverandre
     def concat_vert(self,im2=False,background='black'):
         im2 = im2 if im2 else self # concat with yourself if no other imager is given.
@@ -294,6 +301,7 @@ class Imager():
     #Må være samme størrelse
     def morphtunnel(self,im2,levels=5,scale=0.75):
         return self.tunnel(levels,scale).morph4(im2.tunnel(levels,scale))
+
 
 
 
