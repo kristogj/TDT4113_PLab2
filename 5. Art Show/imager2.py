@@ -2,6 +2,7 @@ from PIL import Image
 from PIL import ImageFilter
 from PIL import ImageEnhance
 from PIL import ImageDraw
+from PIL import ImageFont
 from PIL import ImageOps
 
 
@@ -18,10 +19,6 @@ class Imager():
                       'indigo':(75,0,130),
                       'blue':(65,105,225)}
 
-    _flip_ = {
-        'hor': Image.FLIP_LEFT_RIGHT,
-        'ver': Image.FLIP_TOP_BOTTOM
-    }
 
     def __init__(self,fid=False,image=False,width=100,height=100,background='black',mode='RGB'):
         self.fid = fid # The image file
@@ -102,6 +99,10 @@ class Imager():
         return Imager(image=img)
 
 ################## DIRECTION ##################
+    _flip_ = {
+        'hor': Image.FLIP_LEFT_RIGHT,
+        'ver': Image.FLIP_TOP_BOTTOM
+    }
     def rotate_left(self,angle,expand=True): #expand sier bare at bilde ikke skal cropes
         img = self.image.copy().rotate(angle,expand=expand)
         return Imager(image=img)
@@ -303,8 +304,86 @@ class Imager():
         return self.tunnel(levels,scale).morph4(im2.tunnel(levels,scale))
 
 
+################## DRAW ##################
+
+    #Skriver tekst øverst til venstre
+    def draw_text(self,text,size=30,image=False,opacity=1):
+        image = image if image else self.image
+        image = image.convert("RGBA")
+        txt = Image.new("RGBA",image.size,(255,255,255,0))
+        fnt = ImageFont.truetype("fonts/font2.ttf",size)
+        d = ImageDraw.Draw(txt)
+        d.text((10, 10), text, font=fnt, fill=(0, 0, 0, int(255*opacity)))
+        out = Image.alpha_composite(image,txt)
+        return Imager(image=out)
+
+    def draw_cross(self,image=False,width=10,fill="red"):
+        image = image if image else self.image
+        fill = self._pixel_colors_[fill]
+        draw = ImageDraw.Draw(image)
+        draw.line((0, 0) + image.size, fill=fill,width=width)
+        draw.line((0, image.size[1], image.size[0], 0), fill=fill,width=width)
+        del draw
+        return Imager(image = image)
 
 
+################## OPS ('Ready-made' image processing operations ##################
+
+    #cutoff - prosent to cut of histogram
+    #ignore - background pixel value (None for no background)
+    def autocontrast(self,image=False,cutoff=0,ignore=False):
+        image = image if image else self.image
+        image = ImageOps.autocontrast(image,cutoff=cutoff,ignore=ignore)
+        return Imager(image=image)
+
+    def grayscaleOPS(self,image=False):
+        image = image if image else self.image
+        image = ImageOps.grayscale(image)
+        return Imager(image=image)
+
+    #Fargelegg svart/hvit bilde
+    def colorize(self,black,white,image=False):
+        image = image if image else self.image
+        black = Imager._pixel_colors_[black]
+        white = Imager._pixel_colors_[white]
+        image = ImageOps.colorize(image,black,white)
+        return Imager(image=image)
+
+    #Fjerner x pixler fra hver side
+    def cropOPS(self,pixels,image=False):
+        image = image if image else self.image
+        image = ImageOps.crop(image,border=pixels)
+        return Imager(image=image)
+
+    #Equalize the image histogram. This function applies a non-linear mapping to the input image, in order
+    #to create a uniform distribution of grayscale values in the output image.
+    #Va litt fet..
+    def equalize(self,image=False,mask=None):
+        image = image if image else self.image
+        image = ImageOps.equalize(image,mask=mask)
+        return Imager(image=image)
+
+    #Gir bildets negativ
+    def invert(self,image=False):
+        image = image if image else self.image
+        image = ImageOps.invert(image)
+        return Imager(image=image)
+
+    # Threshold = 255 ingen endring
+    # Threshold = 0 samme som invert
+    # Inverterer altså alle piksler over threshold
+    def solarize(self, threshold=128, image=False):
+        image = image if image else self.image
+        image = ImageOps.solarize(image, threshold=threshold)
+        return Imager(image=image)
+
+    #Reduser antall bit for hver farge kanal
+    #Bits (1-8)
+    def posterize(self,bits=2,image=False):
+        image = image if image else self.image
+        if bits>8:bits=8
+        image = ImageOps.posterize(image,bits)
+        return Imager(image=image)
 
 
 
