@@ -13,14 +13,7 @@ img5 = Imager("images/fisheggs.jpeg")
 img6 = Imager("images/kdfinger.jpeg")
 list = [img2,img3,img4,img5,img6]
 
-img1.flip("hor").display()
-
-
-
-
-
-
-
-
-
+img3 = img3.shuffleImageRows(faktor=50)
+img3 = img3.shuffleImageCol(faktor=50)
+img3.display()
 

@@ -4,6 +4,7 @@ from PIL import ImageEnhance
 from PIL import ImageDraw
 from PIL import ImageFont
 from PIL import ImageOps
+from random import shuffle
 
 
 
@@ -108,7 +109,7 @@ class Imager():
         return Imager(image=img)
 
     def rotate_right(self,angle,expand=True):
-        self.rotate_left(-angle,expand)
+        return self.rotate_left(-angle,expand)
 
     def flip(self,direction):
         img = self.image.copy().transpose(Imager._flip_[direction])
@@ -384,6 +385,34 @@ class Imager():
         if bits>8:bits=8
         image = ImageOps.posterize(image,bits)
         return Imager(image=image)
+
+
+################## My Ideas ##################
+
+    def shuffleImageRows(self,image=False,faktor=100):
+        image = image if image else self.image
+        liste = list(image.getdata())
+        rows = []
+        for x in range(0,len(liste),faktor*image.size[0]):
+            rows.append(liste[x:x+faktor*image.size[0]])
+        shuffle(rows)
+        res = []
+        for row in rows:
+            for tup in row:
+                res.append(tup)
+        im2 = Image.new(image.mode,image.size)
+        im2.putdata(res)
+        return Imager(image=im2)
+
+    def shuffleImageCol(self,image=False,faktor=100):
+        image = image if image else self.image
+        image = Imager(image=image)
+        image = image.rotate_left(90)
+        image = image.shuffleImageRows(faktor=faktor)
+        image = image.rotate_right(90)
+        return image
+
+
 
 
 
