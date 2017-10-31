@@ -308,13 +308,15 @@ class Imager():
 ################## DRAW ##################
 
     #Skriver tekst øverst til venstre
-    def draw_text(self,text,size=30,image=False,opacity=1):
+    def draw_text(self,text,size=30,image=False,opacity=1,R=0,G=0,B=0):
+        c=10
         image = image if image else self.image
         image = image.convert("RGBA")
         txt = Image.new("RGBA",image.size,(255,255,255,0))
         fnt = ImageFont.truetype("fonts/font2.ttf",size)
         d = ImageDraw.Draw(txt)
-        d.text((10, 10), text, font=fnt, fill=(0, 0, 0, int(255*opacity)))
+        w, h = d.textsize(text, fnt)
+        d.text((image.size[0]-w-c, image.size[1]-h-c), text, font=fnt, fill=(R, G, B, int(255*opacity)))
         out = Image.alpha_composite(image,txt)
         return Imager(image=out)
 
@@ -389,9 +391,13 @@ class Imager():
 
 ################## My Ideas ##################
 
+    #Faktor er med å bestemme hvor store bitene som shufles skal være
+    #Faktor lik 2 tilsier 2 rader med pixler i en bit
+    #En rad er av lengde image.size[0]
     def shuffleImageRows(self,image=False,faktor=100):
         image = image if image else self.image
         liste = list(image.getdata())
+        print(liste)
         rows = []
         for x in range(0,len(liste),faktor*image.size[0]):
             rows.append(liste[x:x+faktor*image.size[0]])
@@ -422,14 +428,38 @@ class Imager():
 
 # Note: the default file paths for these examples are for unix!
 
+
+def artistic(im1,im2,im3):
+    im1 = Imager(im1).resize(200,200)
+    im2 = Imager(im2).resize(200,200)
+    im3 = Imager(im3).resize(200,200)
+    #First horizontal
+    im11 = im1.grayscaleOPS()
+    im12 = im11.colorize("red","blue")
+    three_1 = im1.concat_horiz(im11).concat_horiz(im12)
+    #Second Horizontal
+    im21 = im2.shuffleImageRows(faktor=25)
+    im22 = im21.shuffleImageCol(faktor=25)
+    three_2 = im2.concat_horiz(im21).concat_horiz(im22)
+    #Third horizontal
+    three_3 = remove_RGB_3imgconcat(im3)
+    #3x3
+    all = three_1.concat_vert(three_2).concat_vert(three_3)
+    #frame
+    all = all.frame("white")
+    all = all.draw_text("KRISTOFFER")
+    return all
+
+
 #Fjerner en farge fra bildene, setter dem sammen horizontalt
-def remove_RGB_3imgconcat(imagepath="images/brain.jpeg"):
-    img1 = Imager(imagepath)
+def remove_RGB_3imgconcat(image):
+    img1 = image
     noRed = img1.map_color_removeoneRGB("red")
     noGreen = img1.map_color_removeoneRGB("green")
     noBlue = img1.map_color_removeoneRGB("blue")
     onetwo = noRed.concat_horiz(noGreen)
     all = onetwo.concat_horiz(noBlue)
+    all = all.xBlur("boxblur")
     return all
 
 def ptest1(fid1='images/kdfinger.jpeg', fid2="images/einstein.jpeg",steps=5,newsize=250):
@@ -451,7 +481,7 @@ def ptest3(fid1='images/kdfinger.jpeg', fid2="images/einstein.jpeg",newsize=250,
     im1 = Imager(fid1); im2 = Imager(fid2)
     im1 = im1.resize(newsize,newsize); im2 = im2.resize(newsize,newsize)
     box = im1.mortun(im2,levels=levels,scale=scale)
-    box.display()
+
     return box
 
 def reformat(in_fid, out_ext='jpeg',scalex=1.0,scaley=1.0):

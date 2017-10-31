@@ -13,7 +13,8 @@ img5 = Imager("images/fisheggs.jpeg")
 img6 = Imager("images/kdfinger.jpeg")
 list = [img2,img3,img4,img5,img6]
 
-img3 = img3.shuffleImageRows(faktor=50)
-img3 = img3.shuffleImageCol(faktor=50)
-img3.display()
+im1 = "images/fibonacci.jpeg"
+im2 = "images/kdfinger.gif"
+im3 = "images/brain.jpeg"
+imager2.artistic(im1,im2,im3).display()
 
