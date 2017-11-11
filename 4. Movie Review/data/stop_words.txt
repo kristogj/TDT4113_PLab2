@@ -1,8 +1,10 @@
 i
+i've
 me
 my
 myself
 we
+i'll
 our
 ours
 ourselves
@@ -20,7 +22,7 @@ her
 hers
 herself
 it
-its
+it's
 itself
 they
 them

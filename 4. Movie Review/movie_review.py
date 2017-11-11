@@ -79,8 +79,7 @@ def get_score(vokabuler,word):
 ### DEL 4 ###
 def count_word(dictionary,tot_dictionary,word):
     if word not in dictionary:
-        dictionary[word] = 1
-        tot_dictionary[word] = 1
+        dictionary[word], tot_dictionary[word] = 1,1
     else:
         dictionary[word] += 1
         tot_dictionary[word] += 1
